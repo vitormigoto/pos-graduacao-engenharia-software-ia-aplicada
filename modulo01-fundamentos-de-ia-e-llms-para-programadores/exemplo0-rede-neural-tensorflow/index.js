@@ -1,7 +1,8 @@
 import * as tf from '@tensorflow/tfjs'
 
 
-async function trainModel(inputXs, outputYs) {
+// epochs e onEpochEnd são opcionais (a página HTML usa para escolher as épocas e mostrar o progresso)
+export async function trainModel(inputXs, outputYs, { epochs = 100, onEpochEnd } = {}) {
     const model = tf.sequential();
 
     // ## Primeira camada da rede neural    
@@ -54,11 +55,9 @@ async function trainModel(inputXs, outputYs) {
     await model.fit(inputXs, outputYs,
          {
             verbose: 0,     // controla o que é impresso durante o treino.
-            epochs: 100,    // quantas vezes o modelo passa por todo o conjunto de treino. A cada época ele calcula o erro e ajusta os pesos
+            epochs,         // quantas vezes o modelo passa por todo o conjunto de treino. A cada época ele calcula o erro e ajusta os pesos
             shuffle: true,  //  embaralha a ordem dos exemplos a cada época para evitar o VIES.
-            // callbacks:{
-            //     onEpochEnd: (epoch, log) => console.log(`Epoch: ${epoch} : loss = ${log.loss}`)  // Exibir a cada final de uma epoca
-            // }
+            callbacks: { onEpochEnd }  // chamado ao final de cada época (epoch, log)
          }
     )
 
@@ -66,7 +65,7 @@ async function trainModel(inputXs, outputYs) {
 
 }
 
-async function predict(model, pessoa) {
+export async function predict(model, pessoa) {
     // transformar o array js para o tensor js
     const tfInput = tf.tensor2d(pessoa)
 
@@ -78,6 +77,10 @@ async function predict(model, pessoa) {
 
 }
 
+
+// O exemplo abaixo só roda no Node (npm start). No navegador, o index.html importa apenas
+// as funções trainModel e predict acima.
+if (typeof window === 'undefined') {
 
 // Exemplo de pessoas para treino (cada pessoa com idade, cor e localização)
 // const pessoas = [
@@ -142,9 +145,11 @@ const pessoaTensorNormalizado = [
 const predictions = await predict(model, pessoaTensorNormalizado);
 
 const results = predictions
-                    .sort((a,b) => b.prod - a.prob)
+                    .sort((a,b) => b.prob - a.prob)
                     .map( p => `${labelsNomes[p.index]} (${(p.prob*100).toFixed(2)})%`)
                     .join(`\n`)
 
 console.log(results)
+
+}
 
